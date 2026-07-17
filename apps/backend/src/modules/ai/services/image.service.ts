@@ -32,7 +32,8 @@ export class ImageService {
         response_format: 'b64_json',
       });
 
-      const images = response.data.map((img, i) => ({
+      const imageData = response.data || [];
+      const images = imageData.map((img, i) => ({
         id: `img-${Date.now()}-${i}`,
         b64_json: img.b64_json,
         prompt,
