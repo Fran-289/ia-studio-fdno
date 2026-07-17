@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   FolderOpen,
@@ -18,34 +18,71 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { api, endpoints } from '@/lib/api';
+
+interface Project {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  thumbnail?: string;
+  favorite: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const projectTypes = [
   { label: 'Todos', value: 'all' },
-  { label: 'Imágenes', value: 'image' },
-  { label: 'Videos', value: 'video' },
-  { label: 'Voces', value: 'voice' },
-  { label: 'Logos', value: 'logo' },
-];
-
-const projects = [
-  { name: 'Logo Corporativo 2024', type: 'logo', status: 'completed', updated: 'Hace 2 horas', favorite: true },
-  { name: 'Video Promocional', type: 'video', status: 'processing', updated: 'Hace 1 día', favorite: false },
-  { name: 'Avatar LinkedIn', type: 'image', status: 'completed', updated: 'Hace 3 días', favorite: true },
-  { name: 'Miniatura YouTube', type: 'image', status: 'draft', updated: 'Hace 5 días', favorite: false },
-  { name: 'Anuncio Instagram', type: 'image', status: 'completed', updated: 'Hace 1 semana', favorite: false },
-  { name: 'Narración Podcast', type: 'voice', status: 'completed', updated: 'Hace 1 semana', favorite: true },
+  { label: 'Imágenes', value: 'IMAGE' },
+  { label: 'Videos', value: 'VIDEO' },
+  { label: 'Voces', value: 'VOICE' },
+  { label: 'Logos', value: 'LOGO' },
 ];
 
 const typeIcons: Record<string, React.ReactNode> = {
-  image: <Image className="w-5 h-5" />,
-  video: <Video className="w-5 h-5" />,
-  voice: <Mic2 className="w-5 h-5" />,
-  logo: <PenTool className="w-5 h-5" />,
+  IMAGE: <Image className="w-5 h-5" />,
+  VIDEO: <Video className="w-5 h-5" />,
+  VOICE: <Mic2 className="w-5 h-5" />,
+  LOGO: <PenTool className="w-5 h-5" />,
 };
 
+function timeAgo(date: string) {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return 'Hace unos segundos';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `Hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Hace ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `Hace ${days} días`;
+}
+
 export default function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    api.get(endpoints.projects.list)
+      .then((res) => setProjects(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = filter === 'all' ? projects : projects.filter((p) => p.type === filter);
+
+  const toggleFavorite = async (id: string) => {
+    const p = projects.find((p) => p.id === id);
+    if (!p) return;
+    await api.put(endpoints.projects.update(id), { favorite: !p.favorite });
+    setProjects(projects.map((proj) => proj.id === id ? { ...proj, favorite: !proj.favorite } : proj));
+  };
+
+  const deleteProject = async (id: string) => {
+    await api.delete(endpoints.projects.delete(id));
+    setProjects(projects.filter((p) => p.id !== id));
+  };
 
   return (
     <div className="space-y-6">
@@ -91,40 +128,53 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {viewMode === 'grid' ? (
+      {loading ? (
+        <div className="text-center py-20">
+          <p className="text-surface-400">Cargando proyectos...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-20">
+          <FolderOpen className="w-16 h-16 text-surface-500 mx-auto mb-4" />
+          <p className="text-surface-400">No hay proyectos todavía</p>
+          <p className="text-sm text-surface-500 mt-1">Crea tu primer proyecto con IA</p>
+        </div>
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {projects.map((project, i) => (
+          {filtered.map((project, i) => (
             <motion.div
-              key={project.name}
+              key={project.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
             >
               <Card hover className="group">
                 <div className="aspect-video bg-surface-800/50 rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
-                  <div className="text-surface-500">{typeIcons[project.type]}</div>
-                  <button className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="text-surface-500">{typeIcons[project.type] || <Image className="w-5 h-5" />}</div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(project.id); }}
+                    className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
                     <Star className={`w-4 h-4 ${project.favorite ? 'fill-amber-400 text-amber-400' : 'text-white'}`} />
                   </button>
                   <Badge
-                    variant={project.status === 'completed' ? 'success' : project.status === 'processing' ? 'primary' : 'warning'}
+                    variant={project.status === 'COMPLETED' ? 'success' : project.status === 'PROCESSING' ? 'primary' : 'warning'}
                     size="sm"
                     className="absolute bottom-2 left-2"
                   >
-                    {project.status === 'completed' ? 'Completado' : project.status === 'processing' ? 'Procesando' : 'Borrador'}
+                    {project.status === 'COMPLETED' ? 'Completado' : project.status === 'PROCESSING' ? 'Procesando' : 'Borrador'}
                   </Badge>
                 </div>
                 <h3 className="font-medium text-surface-200 mb-1">{project.name}</h3>
-                <p className="text-xs text-surface-500">{project.updated}</p>
+                <p className="text-xs text-surface-500">{timeAgo(project.updatedAt)}</p>
               </Card>
             </motion.div>
           ))}
         </div>
       ) : (
         <div className="space-y-2">
-          {projects.map((project, i) => (
+          {filtered.map((project, i) => (
             <motion.div
-              key={project.name}
+              key={project.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
@@ -132,18 +182,18 @@ export default function ProjectsPage() {
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center">
-                  {typeIcons[project.type]}
+                  {typeIcons[project.type] || <Image className="w-5 h-5" />}
                 </div>
                 <div>
                   <p className="font-medium text-surface-200">{project.name}</p>
-                  <p className="text-xs text-surface-500">{project.updated}</p>
+                  <p className="text-xs text-surface-500">{timeAgo(project.updatedAt)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Badge variant={project.status === 'completed' ? 'success' : project.status === 'processing' ? 'primary' : 'warning'} size="sm">
-                  {project.status === 'completed' ? 'Completado' : project.status === 'processing' ? 'Procesando' : 'Borrador'}
+                <Badge variant={project.status === 'COMPLETED' ? 'success' : project.status === 'PROCESSING' ? 'primary' : 'warning'} size="sm">
+                  {project.status === 'COMPLETED' ? 'Completado' : project.status === 'PROCESSING' ? 'Procesando' : 'Borrador'}
                 </Badge>
-                <button className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
+                <button onClick={() => deleteProject(project.id)} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
                   <MoreVertical className="w-4 h-4 text-surface-400" />
                 </button>
               </div>

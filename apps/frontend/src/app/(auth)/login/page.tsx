@@ -3,12 +3,34 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Sparkles, Mail, Lock, Eye, EyeOff, Github, ChromeIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { api, endpoints } from '@/lib/api';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const { data } = await api.post(endpoints.auth.login, { email, password });
+      localStorage.setItem('auth_token', data.access_token);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -43,12 +65,21 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <form className="space-y-4">
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {typeof error === 'string' ? error : error[0]}
+          </div>
+        )}
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <Input
             label="Correo electrónico"
             type="email"
             placeholder="tu@email.com"
             icon={<Mail className="w-4 h-4" />}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
           />
           <div className="relative">
             <Input
@@ -56,6 +87,9 @@ export default function LoginPage() {
               type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               icon={<Lock className="w-4 h-4" />}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
             />
             <button
               type="button"
@@ -76,8 +110,8 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <Button type="submit" variant="gradient" fullWidth className="mt-2">
-            Iniciar Sesión
+          <Button type="submit" variant="gradient" fullWidth className="mt-2" loading={loading}>
+            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </Button>
         </form>
 

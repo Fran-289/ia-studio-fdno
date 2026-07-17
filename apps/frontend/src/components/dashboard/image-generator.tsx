@@ -16,6 +16,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { api, endpoints } from '@/lib/api';
 
 const imageStyles = [
   { label: 'Realista', value: 'realistic' },
@@ -70,9 +71,22 @@ export function ImageGenerator() {
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setGenerating(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 2000));
-    setGenerating(false);
+    try {
+      const { data } = await api.post(endpoints.images.generate, {
+        prompt,
+        negativePrompt,
+        style: selectedStyle,
+        aspectRatio: selectedRatio,
+        model: selectedModel,
+        creativity,
+        quantity,
+      });
+      console.log('Generated:', data);
+    } catch (err: any) {
+      console.error('Generation failed:', err.response?.data || err.message);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (

@@ -1,12 +1,38 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Sparkles, Mail, Lock, User, Github, ChromeIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { api, endpoints } from '@/lib/api';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const { data } = await api.post(endpoints.auth.register, { name, email, password });
+      localStorage.setItem('auth_token', data.access_token);
+      router.push('/dashboard');
+    } catch (err: any) {
+      const msg = err.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Error al registrar');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -40,13 +66,19 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <form className="space-y-4">
-          <Input label="Nombre completo" type="text" placeholder="Tu nombre" icon={<User className="w-4 h-4" />} />
-          <Input label="Correo electrónico" type="email" placeholder="tu@email.com" icon={<Mail className="w-4 h-4" />} />
-          <Input label="Contraseña" type="password" placeholder="••••••••" icon={<Lock className="w-4 h-4" />} />
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <Input label="Nombre completo" type="text" placeholder="Tu nombre" icon={<User className="w-4 h-4" />} value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input label="Correo electrónico" type="email" placeholder="tu@email.com" icon={<Mail className="w-4 h-4" />} value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input label="Contraseña" type="password" placeholder="••••••••" icon={<Lock className="w-4 h-4" />} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
 
           <div className="flex items-start gap-2">
-            <input type="checkbox" className="mt-1 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500/20" />
+            <input type="checkbox" className="mt-1 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500/20" required />
             <span className="text-sm text-surface-400">
               Acepto los{' '}
               <Link href="#" className="text-primary-400 hover:text-white">Términos de Servicio</Link>
@@ -55,8 +87,8 @@ export default function RegisterPage() {
             </span>
           </div>
 
-          <Button type="submit" variant="gradient" fullWidth className="mt-2">
-            Crear Cuenta
+          <Button type="submit" variant="gradient" fullWidth className="mt-2" loading={loading}>
+            {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
           </Button>
         </form>
 
