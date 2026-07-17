@@ -1,22 +1,60 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AdminSidebar } from '@/components/admin/admin-layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, MoreVertical } from 'lucide-react';
+import { api } from '@/lib/api';
 
-const allUsers = Array.from({ length: 20 }).map((_, i) => ({
-  name: `Usuario ${i + 1}`,
-  email: `usuario${i + 1}@email.com`,
-  plan: ['Free', 'Pro', 'Business', 'Enterprise'][i % 4],
-  status: i % 5 === 0 ? 'Inactivo' : 'Activo',
-  credits: [50, 500, 2000, 10000][i % 4],
-  joined: `2024-0${(i % 9) + 1}-${String((i % 28) + 1).padStart(2, '0')}`,
-}));
+const PLANS = ['FREE', 'PRO', 'BUSINESS', 'ENTERPRISE'];
 
 export default function AdminUsersPage() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editCredits, setEditCredits] = useState<Record<string, string>>({});
+  const [editPlan, setEditPlan] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/admin/users');
+      if (data.success) {
+        setUsers(data.data);
+        const credits: Record<string, string> = {};
+        const plans: Record<string, string> = {};
+        data.data.forEach((u: any) => {
+          credits[u.id] = String(u.credits ?? u.subscription?.credits ?? 50);
+          plans[u.id] = u.subscription?.plan || 'FREE';
+        });
+        setEditCredits(credits);
+        setEditPlan(plans);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadUsers(); }, []);
+
+  const saveUser = async (userId: string) => {
+    setSaving((s) => ({ ...s, [userId]: true }));
+    try {
+      const credits = parseInt(editCredits[userId]) || 0;
+      const plan = editPlan[userId];
+      await api.put(`/admin/users/${userId}/credits`, { credits });
+      if (plan) await api.put(`/admin/users/${userId}/plan`, { plan, credits });
+      await loadUsers();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving((s) => ({ ...s, [userId]: false }));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -28,70 +66,68 @@ export default function AdminUsersPage() {
         <AdminSidebar />
 
         <div className="flex-1 space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-              <input
-                type="text"
-                placeholder="Buscar usuarios..."
-                className="w-full pl-10 pr-4 py-2.5 bg-surface-800/50 border border-surface-700/50 rounded-xl text-sm text-surface-100 placeholder-surface-500 focus:outline-none focus:border-primary-500/50"
-              />
-            </div>
-            <Button variant="secondary" size="sm" icon={<Filter className="w-4 h-4" />}>
-              Filtros
-            </Button>
-          </div>
-
           <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-surface-500 text-xs uppercase border-b border-white/5">
-                      <th className="text-left p-4">Usuario</th>
-                      <th className="text-left p-4">Email</th>
-                      <th className="text-left p-4">Plan</th>
-                      <th className="text-left p-4">Créditos</th>
-                      <th className="text-left p-4">Estado</th>
-                      <th className="text-left p-4">Registro</th>
-                      <th className="text-left p-4"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allUsers.map((user, i) => (
-                      <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
-                        <td className="p-4 text-surface-200 font-medium">{user.name}</td>
-                        <td className="p-4 text-surface-400">{user.email}</td>
-                        <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            user.plan === 'Pro' ? 'bg-primary-500/20 text-white' :
-                            user.plan === 'Business' ? 'bg-emerald-500/10 text-emerald-300' :
-                            user.plan === 'Enterprise' ? 'bg-amber-500/10 text-amber-300' :
-                            'bg-surface-700/50 text-surface-400'
-                          }`}>{user.plan}</span>
-                        </td>
-                        <td className="p-4 text-surface-300">{user.credits.toLocaleString()}</td>
-                        <td className="p-4">
-                          <span className={`flex items-center gap-1.5 text-xs ${
-                            user.status === 'Activo' ? 'text-emerald-400' : 'text-surface-500'
-                          }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              user.status === 'Activo' ? 'bg-emerald-400' : 'bg-surface-500'
-                            }`} />
-                            {user.status}
-                          </span>
-                        </td>
-                        <td className="p-4 text-surface-500">{user.joined}</td>
-                        <td className="p-4">
-                          <button className="p-1 hover:bg-white/5 rounded-lg transition-colors">
-                            <MoreVertical className="w-4 h-4 text-surface-400" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Usuarios ({users.length})</CardTitle>
+                <Button variant="ghost" size="sm" onClick={loadUsers}>
+                  Recargar
+                </Button>
               </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading ? (
+                <p className="text-surface-500 text-center py-8">Cargando...</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-surface-500 text-xs uppercase border-b border-white/5">
+                        <th className="text-left p-4">Email</th>
+                        <th className="text-left p-4">Nombre</th>
+                        <th className="text-center p-4">Créditos</th>
+                        <th className="text-center p-4">Plan</th>
+                        <th className="text-center p-4">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user) => (
+                        <tr key={user.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                          <td className="p-4 text-surface-200">{user.email}</td>
+                          <td className="p-4 text-surface-400">{user.name || '-'}</td>
+                          <td className="p-4 text-center">
+                            <input
+                              type="number"
+                              value={editCredits[user.id] || ''}
+                              onChange={(e) => setEditCredits({ ...editCredits, [user.id]: e.target.value })}
+                              className="w-24 text-center bg-surface-800 border border-surface-700 rounded-lg px-2 py-1 text-surface-100 text-sm"
+                            />
+                          </td>
+                          <td className="p-4 text-center">
+                            <select
+                              value={editPlan[user.id] || 'FREE'}
+                              onChange={(e) => setEditPlan({ ...editPlan, [user.id]: e.target.value })}
+                              className="bg-surface-800 border border-surface-700 rounded-lg px-2 py-1 text-surface-100 text-sm"
+                            >
+                              {PLANS.map((p) => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                          </td>
+                          <td className="p-4 text-center">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => saveUser(user.id)}
+                              loading={saving[user.id]}
+                            >
+                              Guardar
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

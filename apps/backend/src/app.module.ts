@@ -8,6 +8,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { AiModule } from './modules/ai/ai.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { PrismaModule } from './config/prisma.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { PrismaModule } from './config/prisma.module';
     AiModule,
     StorageModule,
     PaymentsModule,
+    AdminModule,
   ],
   providers: [
     {

@@ -24,6 +24,7 @@ export default function RegisterPage() {
     try {
       const { data } = await api.post(endpoints.auth.register, { name, email, password });
       localStorage.setItem('auth_token', data.access_token);
+      document.cookie = `auth_token=${data.access_token}; path=/; max-age=2592000; SameSite=Strict`;
       router.push('/dashboard');
     } catch (err: any) {
       const msg = err.response?.data?.message;

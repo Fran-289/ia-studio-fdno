@@ -24,6 +24,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post(endpoints.auth.login, { email, password });
       localStorage.setItem('auth_token', data.access_token);
+      document.cookie = `auth_token=${data.access_token}; path=/; max-age=2592000; SameSite=Strict`;
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al iniciar sesión');

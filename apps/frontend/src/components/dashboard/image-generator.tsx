@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Sparkles,
@@ -8,13 +8,10 @@ import {
   Image as ImageIcon,
   Download,
   RefreshCw,
-  ChevronDown,
-  Sliders,
-  Wand2,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api, endpoints } from '@/lib/api';
 
@@ -23,50 +20,29 @@ const imageStyles = [
   { label: 'Anime', value: 'anime' },
   { label: '3D', value: '3d' },
   { label: 'Pixar', value: 'pixar' },
-  { label: 'Disney', value: 'disney' },
   { label: 'Cyberpunk', value: 'cyberpunk' },
   { label: 'Cinemático', value: 'cinematic' },
   { label: 'Fotografía', value: 'photography' },
   { label: 'Fantasy', value: 'fantasy' },
-  { label: 'Manga', value: 'manga' },
   { label: 'Sketch', value: 'sketch' },
-  { label: 'Oil Painting', value: 'oil-painting' },
-  { label: 'Watercolor', value: 'watercolor' },
-  { label: 'Low Poly', value: 'low-poly' },
   { label: 'Pixel Art', value: 'pixel-art' },
   { label: 'Logo', value: 'logo' },
-  { label: 'Sticker', value: 'sticker' },
-  { label: 'Tattoo', value: 'tattoo' },
-  { label: 'Avatar', value: 'avatar' },
-];
-
-const aspectRatios = [
-  { label: '1:1', value: '1:1' },
-  { label: '16:9', value: '16:9' },
-  { label: '9:16', value: '9:16' },
-  { label: '4:3', value: '4:3' },
-  { label: '3:2', value: '3:2' },
-  { label: '2:1', value: '2:1' },
-];
-
-const models = [
-  { label: 'OpenAI DALL-E 3', value: 'dalle-3' },
-  { label: 'FLUX Pro', value: 'flux-pro' },
-  { label: 'FLUX Schnell', value: 'flux-schnell' },
-  { label: 'Stable Diffusion 3', value: 'sd-3' },
-  { label: 'Stable Diffusion XL', value: 'sdxl' },
 ];
 
 export function ImageGenerator() {
   const [prompt, setPrompt] = useState('');
-  const [negativePrompt, setNegativePrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState('realistic');
-  const [selectedRatio, setSelectedRatio] = useState('1:1');
-  const [selectedModel, setSelectedModel] = useState('dalle-3');
-  const [creativity, setCreativity] = useState(0.7);
   const [quantity, setQuantity] = useState(1);
   const [generating, setGenerating] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+  const [credits, setCredits] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    api.get('/payments/subscription').then((r) => {
+      if (r.data.success) setCredits(r.data.data.credits || 0);
+    }).catch(() => {});
+  }, []);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -74,14 +50,12 @@ export function ImageGenerator() {
     try {
       const { data } = await api.post(endpoints.images.generate, {
         prompt,
-        negativePrompt,
         style: selectedStyle,
-        aspectRatio: selectedRatio,
-        model: selectedModel,
-        creativity,
         quantity,
       });
-      console.log('Generated:', data);
+      if (data.success && data.data) {
+        setResults(data.data);
+      }
     } catch (err: any) {
       console.error('Generation failed:', err.response?.data || err.message);
     } finally {
@@ -89,13 +63,17 @@ export function ImageGenerator() {
     }
   };
 
+  const handleDownload = (b64: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = `data:image/jpeg;base64,${b64}`;
+    link.download = filename;
+    link.click();
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <Card>
             <CardHeader>
               <CardTitle>Generar Imagen</CardTitle>
@@ -112,16 +90,6 @@ export function ImageGenerator() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-surface-300 mb-2">Prompt Negativo</label>
-                <input
-                  value={negativePrompt}
-                  onChange={(e) => setNegativePrompt(e.target.value)}
-                  placeholder="Elementos que NO quieres en la imagen..."
-                  className="input-field"
-                />
-              </div>
-
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -129,68 +97,12 @@ export function ImageGenerator() {
                   onClick={() => setShowAdvanced(!showAdvanced)}
                   icon={<Settings2 className="w-4 h-4" />}
                 >
-                  {showAdvanced ? 'Ocultar' : 'Mostrar'} configuraciones avanzadas
+                  {showAdvanced ? 'Ocultar' : 'Mostrar'} opciones
                 </Button>
               </div>
 
               {showAdvanced && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  className="space-y-4 pt-2"
-                >
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-2">Modelo</label>
-                      <select
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                        className="input-field"
-                      >
-                        {models.map((m) => (
-                          <option key={m.value} value={m.value}>{m.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-surface-300 mb-2">Relación de Aspecto</label>
-                      <div className="flex flex-wrap gap-2">
-                        {aspectRatios.map((ratio) => (
-                          <button
-                            key={ratio.value}
-                            onClick={() => setSelectedRatio(ratio.value)}
-                            className={`px-3 py-1.5 text-xs rounded-lg border transition-all ${
-                              selectedRatio === ratio.value
-                                ? 'border-white/20 bg-primary-500/20 text-white'
-                                : 'border-surface-700/50 text-surface-400 hover:border-surface-600'
-                            }`}
-                          >
-                            {ratio.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-2">
-                      Creatividad: {Math.round(creativity * 100)}%
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={creativity}
-                      onChange={(e) => setCreativity(parseFloat(e.target.value))}
-                      className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                    />
-                    <div className="flex justify-between text-xs text-surface-500 mt-1">
-                      <span>Precisa</span>
-                      <span>Creativa</span>
-                    </div>
-                  </div>
-
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-4 pt-2">
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-2">Cantidad</label>
                     <div className="flex items-center gap-2">
@@ -219,7 +131,7 @@ export function ImageGenerator() {
                 onClick={handleGenerate}
                 loading={generating}
                 disabled={!prompt.trim()}
-                icon={<Sparkles className="w-5 h-5" />}
+                icon={generating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
               >
                 {generating ? 'Generando...' : 'Generar Imagen'}
               </Button>
@@ -227,45 +139,50 @@ export function ImageGenerator() {
           </Card>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card>
             <CardHeader>
               <CardTitle>Resultados</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="aspect-square bg-surface-800/50 rounded-xl border border-surface-700/50 flex items-center justify-center group cursor-pointer hover:border-primary-500/30 transition-all"
-                  >
-                    <div className="text-center">
-                      <ImageIcon className="w-10 h-10 text-surface-500 mx-auto mb-2" />
-                      <p className="text-sm text-surface-400">Imagen {i + 1}</p>
+              {results.length === 0 ? (
+                <div className="text-center py-12 text-surface-500">
+                  <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                  <p>Las imágenes generadas aparecerán aquí</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {results.map((img, i) => (
+                    <div
+                      key={img.id || i}
+                      className="relative aspect-square rounded-xl overflow-hidden border border-surface-700/50 group bg-surface-800/50"
+                    >
+                      <img
+                        src={`data:${img.contentType || 'image/jpeg'};base64,${img.b64_json}`}
+                        alt={img.prompt || `Generated ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          icon={<Download className="w-4 h-4" />}
+                          onClick={() => handleDownload(img.b64_json, `ia-studio-${i + 1}.jpg`)}
+                        >
+                          Descargar
+                        </Button>
+                      </div>
                     </div>
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
-                      <Button variant="secondary" size="sm" icon={<Download className="w-4 h-4" />}>
-                        Descargar
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
       </div>
 
       <div className="space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card>
             <CardHeader>
               <CardTitle>Estilos</CardTitle>
@@ -290,22 +207,14 @@ export function ImageGenerator() {
           </Card>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card>
             <CardHeader>
               <CardTitle>Créditos</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-3xl font-bold gradient-text mb-1">450</p>
+              <p className="text-3xl font-bold gradient-text mb-1">{credits}</p>
               <p className="text-sm text-surface-400">créditos disponibles</p>
-              <div className="mt-4 h-2 bg-surface-800 rounded-full overflow-hidden">
-                <div className="h-full w-3/4 gradient-primary rounded-full" />
-              </div>
-              <p className="text-xs text-surface-500 mt-2">50 créditos = 1 generación</p>
             </CardContent>
           </Card>
         </motion.div>
