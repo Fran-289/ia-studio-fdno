@@ -1,24 +1,34 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class VideoService {
   private readonly logger = new Logger(VideoService.name);
 
+  constructor(private configService: ConfigService) {}
+
   async generate(params: any) {
-    this.logger.log(`Generating video with params: ${JSON.stringify(params)}`);
-    // Integrate with Veo, Runway, Kling, or Luma
+    const provider = (params.model || '').toLowerCase();
+
+    if (provider.includes('runway')) {
+      return this.callRunway(params);
+    }
+
     return {
-      success: true,
-      data: {
-        id: 'generated-video-id',
-        url: 'https://example.com/video.mp4',
-        duration: params.duration || 5,
-      },
+      success: false,
+      error: 'Generación de video requiere API key de Runway, Veo, Kling o Luma. Configura el proveedor e intenta de nuevo.',
     };
   }
 
   async edit(params: any) {
-    this.logger.log(`Editing video: ${params.videoId}`);
-    return { success: true, data: { id: params.videoId, url: 'https://example.com/edited.mp4' } };
+    return { success: false, error: 'Edición de video no implementada aún' };
+  }
+
+  private async callRunway(params: any) {
+    const apiKey = this.configService.get<string>('RUNWAY_API_KEY');
+    if (!apiKey) {
+      return { success: false, error: 'RUNWAY_API_KEY no configurada' };
+    }
+    return { success: false, error: 'Integración con Runway pendiente' };
   }
 }
