@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Delete,
   Body,
   UseGuards,
@@ -20,7 +21,12 @@ export class StorageController {
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async upload(@UploadedFile() file: Express.Multer.File, @Req() req: any) {
-    return this.storageService.upload(file as any, req.user.sub);
+    return this.storageService.upload(file, req.user.sub);
+  }
+
+  @Get('list')
+  async list(@Req() req: any) {
+    return this.storageService.list(req.user.sub);
   }
 
   @Delete('delete')

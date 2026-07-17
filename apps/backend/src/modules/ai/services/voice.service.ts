@@ -1,70 +1,47 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class VoiceService {
   private readonly logger = new Logger(VoiceService.name);
-  private readonly apiKey: string;
-
-  constructor(private configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('ELEVENLABS_API_KEY') || '';
-  }
 
   async textToSpeech(params: any) {
-    const { text, voiceId = '21m00Tcm4TlvDq8ikWAM', stability, similarity } = params;
+    const { text } = params;
 
-    if (!this.apiKey) {
-      return { success: false, error: 'ELEVENLABS_API_KEY no configurada' };
+    if (!text) {
+      return { success: false, error: 'Texto requerido' };
     }
 
     try {
-      const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Accept': 'audio/mpeg',
-            'Content-Type': 'application/json',
-            'xi-api-key': this.apiKey,
-          },
-          body: JSON.stringify({
-            text,
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: {
-              stability: stability ?? 0.5,
-              similarity_boost: similarity ?? 0.75,
-            },
-          }),
-        },
-      );
+      // Google Translate TTS - gratuito, sin API key, funciona en español
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text.slice(0, 200))}&tl=es&client=tw-ob`;
 
+      const response = await fetch(url);
       if (!response.ok) {
-        const err = await response.text();
-        return { success: false, error: `ElevenLabs error: ${err}` };
+        return { success: false, error: 'TTS temporalmente no disponible' };
       }
 
-      const audioBuffer = await response.arrayBuffer();
-      const base64 = Buffer.from(audioBuffer).toString('base64');
+      const buffer = await response.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString('base64');
 
       return {
         success: true,
         data: {
           audio: base64,
           contentType: 'audio/mpeg',
-          duration: 0,
+          duration: Math.ceil(text.length / 15),
         },
       };
     } catch (error: any) {
-      this.logger.error(`ElevenLabs TTS failed: ${error.message}`);
+      this.logger.error(`TTS failed: ${error.message}`);
       return { success: false, error: error.message };
     }
   }
 
   async clone(params: any) {
-    return { success: false, error: 'Clonación de voz no implementada aún' };
+    return { success: false, error: 'Clonación de voz no disponible en versión gratuita' };
   }
 
   async translate(params: any) {
-    return { success: false, error: 'Traducción de voz no implementada aún' };
+    return { success: false, error: 'Traducción de voz no disponible en versión gratuita' };
   }
 }
