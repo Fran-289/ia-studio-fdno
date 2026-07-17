@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../config/prisma.service';
+import { ProjectType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ProjectsService {
@@ -27,7 +29,8 @@ export class ProjectsService {
   async create(userId: string, data: { name: string; type: string }) {
     return this.prisma.project.create({
       data: {
-        ...data,
+        name: data.name,
+        type: data.type as ProjectType,
         userId,
       },
     });
@@ -55,7 +58,7 @@ export class ProjectsService {
         name: `${project.name} (Copia)`,
         type: project.type,
         userId,
-        settings: project.settings,
+        settings: project.settings as Prisma.InputJsonValue,
       },
     });
   }

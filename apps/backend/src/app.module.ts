@@ -14,7 +14,7 @@ import { PrismaModule } from './config/prisma.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: ['.env', '../../.env'],
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],

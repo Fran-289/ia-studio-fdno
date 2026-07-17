@@ -4,7 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
 
-  async upload(file: Express.Multer.File, userId: string) {
+  async upload(file: any, userId: string) {
     this.logger.log(`Uploading file for user ${userId}: ${file.originalname}`);
     // Integrate with AWS S3 or Cloudinary
     return {

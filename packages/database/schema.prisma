@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Plan {
@@ -125,8 +126,10 @@ model Project {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projectFiles ProjectFile[]
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectFiles    ProjectFile[]
+  generatedImages GeneratedImage[]
+  generatedVideos GeneratedVideo[]
 
   @@index([userId, type])
   @@index([userId, status])

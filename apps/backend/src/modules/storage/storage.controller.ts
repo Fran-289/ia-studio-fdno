@@ -20,7 +20,7 @@ export class StorageController {
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async upload(@UploadedFile() file: Express.Multer.File, @Req() req: any) {
-    return this.storageService.upload(file, req.user.sub);
+    return this.storageService.upload(file as any, req.user.sub);
   }
 
   @Delete('delete')
