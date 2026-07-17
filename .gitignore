@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.next/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+coverage/
+.turbo/
+.vscode/
+frontend-log.txt
+frontend-err.log
+frontend-out.log
+start-frontend.ps1
