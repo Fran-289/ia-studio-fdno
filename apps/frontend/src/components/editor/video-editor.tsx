@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Scissors,
-  Unite,
+  Split,
   Copy,
   Trash2,
   ZoomIn,
@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 
 const timelineTools = [
   { icon: <Scissors className="w-4 h-4" />, label: 'Cortar' },
-  { icon: <Unite className="w-4 h-4" />, label: 'Dividir' },
+  { icon: <Split className="w-4 h-4" />, label: 'Dividir' },
   { icon: <Copy className="w-4 h-4" />, label: 'Duplicar' },
   { icon: <Trash2 className="w-4 h-4" />, label: 'Eliminar' },
   { icon: <ZoomIn className="w-4 h-4" />, label: 'Zoom' },
@@ -38,7 +38,7 @@ const timelineTools = [
 const sidebarTools = [
   { icon: <Film className="w-5 h-5" />, label: 'Recortar', group: 'Edición' },
   { icon: <Scissors className="w-5 h-5" />, label: 'Dividir', group: 'Edición' },
-  { icon: <Unite className="w-5 h-5" />, label: 'Unir', group: 'Edición' },
+  { icon: <Split className="w-5 h-5" />, label: 'Unir', group: 'Edición' },
   { icon: <Volume2 className="w-5 h-5" />, label: 'Audio', group: 'Audio' },
   { icon: <Music className="w-5 h-5" />, label: 'Música', group: 'Audio' },
   { icon: <Subtitles className="w-5 h-5" />, label: 'Subtítulos', group: 'Texto' },

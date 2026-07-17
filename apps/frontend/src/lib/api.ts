@@ -66,6 +66,10 @@ export const endpoints = {
     upload: '/storage/upload',
     delete: '/storage/delete',
   },
+  payments: {
+    createCheckout: '/payments/create-checkout',
+    subscription: '/payments/subscription',
+  },
   user: {
     profile: '/user/profile',
     update: '/user/update',

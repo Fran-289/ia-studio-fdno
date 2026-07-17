@@ -48,6 +48,7 @@ const navItems: NavItem[] = [
   { label: 'Editor Video', icon: <Video className="w-5 h-5" />, href: '/dashboard/editor/video', group: 'Edición' },
   { label: 'Proyectos', icon: <FolderOpen className="w-5 h-5" />, href: '/dashboard/projects', group: 'Gestión' },
   { label: 'Biblioteca', icon: <Library className="w-5 h-5" />, href: '/dashboard/library', group: 'Gestión' },
+  { label: 'Planes', icon: <Sparkles className="w-5 h-5" />, href: '/dashboard/pricing', group: 'Gestión' },
 ];
 
 const bottomItems: NavItem[] = [

@@ -13,3 +13,5 @@ frontend-log.txt
 frontend-err.log
 frontend-out.log
 start-frontend.ps1
+
+uploads/

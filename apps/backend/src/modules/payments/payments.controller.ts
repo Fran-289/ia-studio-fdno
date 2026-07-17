@@ -9,12 +9,12 @@ export class PaymentsController {
   @Post('create-checkout')
   @UseGuards(JwtAuthGuard)
   async createCheckout(@Req() req: any, @Body() body: { plan: string }) {
-    return this.paymentsService.createCheckoutSession(req.user.sub, body.plan);
+    return this.paymentsService.createCheckoutSession(req.user.sub, body.plan, req.user.email);
   }
 
   @Post('webhook')
-  async webhook(@Body() body: any, @Headers('stripe-signature') signature: string) {
-    return this.paymentsService.handleWebhook(body);
+  async webhook(@Req() req: any, @Headers('stripe-signature') signature: string) {
+    return this.paymentsService.handleWebhook(req.body, signature);
   }
 
   @Get('subscription')
